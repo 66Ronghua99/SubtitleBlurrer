@@ -203,8 +203,29 @@ function createOrUpdateBlurOverlay() {
         blurOverlay.style.cursor = 'move'; // Default cursor for dragging
 
         // Add drag listener to the overlay itself
-        blurOverlay.addEventListener('mousedown', startDrag);
-        blurOverlay.addEventListener('touchstart', startDrag, { passive: false });
+        blurOverlay.addEventListener('mousedown', function(event) {
+            event.stopPropagation();
+            startDrag(event)
+        });
+        blurOverlay.addEventListener('touchstart', function(event) {
+            event.stopPropagation();
+            startDrag(event)
+        }, { passive: false });
+        blurOverlay.addEventListener('touchend', function(event) {
+            event.stopPropagation();
+            stopDragOrResize();
+        });
+        blurOverlay.addEventListener('touchcancel', function(event) {
+            event.stopPropagation();
+        });
+        blurOverlay.addEventListener('click', function(event) {
+            event.stopPropagation(); // Prevent click from bubbling up
+        });
+        blurOverlay.addEventListener('mouseup', function(event) {
+            event.stopPropagation(); // Prevent click from bubbling up
+            stopDragOrResize();
+        });
+
 
         // Add resize handles
         addResizeHandles(blurOverlay);
@@ -256,8 +277,28 @@ function addResizeHandles(overlay) {
         handle.style.cursor = handleInfo.cursor;
         handle.dataset.handle = handleInfo.edge; // Mark the handle type
 
-        handle.addEventListener('mousedown', startResize);
-        handle.addEventListener('touchstart', startResize, { passive: false }); // Use passive false for touch
+        handle.addEventListener('mousedown', function(event) {
+            event.stopPropagation();
+            startResize(event);
+        });
+        handle.addEventListener('touchstart', function(event) {
+            event.stopPropagation();
+            startResize(event);
+        }, { passive: false });
+        handle.addEventListener('touchend', function(event) {
+            event.stopPropagation();
+            stopDragOrResize();
+        });
+        handle.addEventListener('touchcancel', function(event) {
+            event.stopPropagation();
+        });
+        handle.addEventListener('click', function(event) {
+            event.stopPropagation(); // Prevent click from bubbling up
+        });
+        handle.addEventListener('mouseup', function(event) {
+            event.stopPropagation(); // Prevent click from bubbling up
+            stopDragOrResize();
+        });
 
         overlay.appendChild(handle);
         console.log('Adding handle:', handleInfo);
@@ -325,14 +366,6 @@ function updateOverlayPosition() {
     blurOverlay.style.width = `${videoRect.width * 0.8}px`;
     blurOverlay.style.height = `${blurHeight}px`;
 
-    // console.log(
-    //     'Blur updated (Auto):',
-    //     `Top: ${blurOverlay.style.top}`,
-    //     `Left: ${blurOverlay.style.left}`,
-    //     `W: ${blurOverlay.style.width}`,
-    //     `H: ${blurOverlay.style.height}`,
-    //     `Parent: ${blurOverlay.parentNode?.tagName}`
-    // );
 }
 
 // --- Remove Overlay ---
@@ -349,11 +382,6 @@ function removeBlurOverlay() {
         }
     }
     blurOverlay = null;
-
-    // Stop observing if observer exists (currently observing all videos anyway)
-    // if (resizeObserver && activeVideo) {
-    //     resizeObserver.unobserve(activeVideo);
-    // }
 
     if (activeVideo) {
         cleanupRelativePosition(activeVideo); // Clean up parent style if we added it
@@ -391,7 +419,7 @@ function startDrag(event) {
 
     startClientX = clientX;
     startClientY = clientY;
-
+    
     // Store the current position relative to the offsetParent
     startOffsetLeft = blurOverlay.offsetLeft;
     startOffsetTop = blurOverlay.offsetTop;
@@ -537,21 +565,10 @@ function handleVideoPlay(event) {
     if (isBlurEnabled) {
         createOrUpdateBlurOverlay();
     }
-
-    // Re-observe the new active video with ResizeObserver if needed
-    // if (resizeObserver && activeVideo && previouslyActive !== activeVideo) {
-    //     resizeObserver.unobserve(previouslyActive); // Stop observing old video
-    //     resizeObserver.observe(activeVideo); // Observe the current video
-    // }
 }
 
 function handleVideoPauseOrEnd(event) {
-    // console.log('Video paused or ended:', event.target);
-    // Only remove the overlay if the video that paused/ended *is* the active one
-    // And ensure it's not just a temporary pause for seeking, etc.
-    // A simple approach: If the video is *not* the active one, ignore.
     if (event.target !== activeVideo) {
-        // console.log('Ignorning pause/end for non-active video');
         return;
     }
 
@@ -559,18 +576,11 @@ function handleVideoPauseOrEnd(event) {
     if (activeVideo.paused || activeVideo.ended) {
         console.log('Active video paused or ended, removing overlay.');
         removeBlurOverlay();
-    } else {
-        // Video might have just buffered/seeked, don't remove blur
-        // console.log('Active video is not fully paused/ended, keeping overlay.');
     }
 }
 
 function handleFullscreenChange() {
     console.log('Fullscreen change detected. Fullscreen element:', document.fullscreenElement);
-    // When fullscreen changes, the parent of the overlay might change.
-    // We need to re-run the creation/update logic to handle potential re-parenting
-    // and ensure the position is correct relative to the new parent, *especially* if
-    // in manual mode (the absolute position needs to be recalculated relative to the new parent's origin).
     if (activeVideo) {
         createOrUpdateBlurOverlay();
         if (manualPositioning && blurOverlay) {
@@ -578,12 +588,10 @@ function handleFullscreenChange() {
             blurOverlay.style.pointerEvents = 'auto';
             // No need to call updateOverlayPosition here if manualPositioning is true.
         } else if (blurOverlay) {
-            // If exited fullscreen and not in manual mode, ensure position updates
             updateOverlayPosition(); // This will re-calculate based on the non-fullscreen video size/pos
         }
     } else if (!document.fullscreenElement && blurOverlay) {
         // Exited fullscreen, but no active video was tracked (shouldn't happen if logic is correct)
-        // Ensure overlay is removed.
         console.log('Exited fullscreen with no active video, removing overlay.');
         removeBlurOverlay();
     }
@@ -621,10 +629,7 @@ resizeObserver = new ResizeObserver(entries => {
                 console.log('ResizeObserver triggered for active video');
                 debouncedUpdateOverlayPosition(); // Use debounced version
             }
-            // If the overlay is resized manually, the manualPositioning flag prevents auto updates
         }
-    } else {
-        // console.log('ResizeObserver triggered but manual positioning is active.');
     }
 });
 
@@ -664,10 +669,7 @@ document.addEventListener('fullscreenchange', handleFullscreenChange);
 // Add global mouse/touch move/up listeners ONCE for drag/resize
 // These will check the isDragging/isResizing flags inside their handlers
 window.addEventListener('mousemove', doDragOrResize);
-window.addEventListener('mouseup', stopDragOrResize);
 window.addEventListener('touchmove', doDragOrResize, { passive: false }); // passive: false allows preventDefault
-window.addEventListener('touchend', stopDragOrResize);
-window.addEventListener('touchcancel', stopDragOrResize); // Also stop on touch cancel
 // --- Listen for Chrome Extension Messages ---
 function setupChromeExtensionMessaging() {
     if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
