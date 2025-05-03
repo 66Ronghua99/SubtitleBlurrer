@@ -643,16 +643,17 @@ if (videos.length === 0) {
             video.addEventListener('pause', handleVideoPauseOrEnd);
             video.addEventListener('ended', handleVideoPauseOrEnd);
             video.dataset.blurSetup = true; // Mark as set up
-
+            
             // Optional: If a video is already playing when the script loads, handle it
             // if (!video.paused) {
-            //     handleVideoPlay({ target: video });
-            // }
-        } else {
-            // console.log('Video already has blur setup:', video);
-        }
-    });
-    console.log(`Added listeners to ${videos.length} video(s).`);
+                //     handleVideoPlay({ target: video });
+                // }
+            } else {
+                // console.log('Video already has blur setup:', video);
+            }
+        });
+        console.log(`Added listeners to ${videos.length} video(s).`);
+    createToggleButton();
 }
 
 // Global listeners for window resize, scroll, and mouse/touch events for dragging/resizing
@@ -686,6 +687,4 @@ function setupChromeExtensionMessaging() {
 
 // Set up message listener for the extension icon click instead of creating the button immediately
 setupChromeExtensionMessaging();
-setupChromeExtensionMessaging();
-// initializwith tdrag/resizeinitialized. Toggle buttonwill appear when extension icon is click
 console.log('Blur overlay initialized. Toggle button will appear when extension icon is clicked.');
