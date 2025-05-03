@@ -1,7 +1,7 @@
 let blurOverlay = null;
 let activeVideo = null; // Track the video currently intended to have the blur
 let resizeObserver = null; // Keep observer reference for cleanup/re-observing
-let isBlurEnabled = true; // New state variable to track if blur is enabled
+let isBlurEnabled = false; // New state variable to track if blur is enabled
 
 previousWidthPercentage = 0;
 previousHeightPercentage = 0;
