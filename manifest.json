@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "视频字幕模糊器/Subtitle Blurrer",
+  "version": "1.0",
+  "description": "在视频播放时模糊处理字幕区域。// Blur subtitles while playing videos.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["blurrer.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Toggle BlurScript",
+    "default_icon": {
+      "16": "subtitleBlurer.png",
+      "48": "subtitleBlurer.png",
+      "128": "subtitleBlurer.png"
+    }
+  }
+}
