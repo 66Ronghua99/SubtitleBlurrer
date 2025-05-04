@@ -3,10 +3,10 @@ let activeVideo = null; // Track the video currently intended to have the blur
 let resizeObserver = null; // Keep observer reference for cleanup/re-observing
 let isBlurEnabled = false; // New state variable to track if blur is enabled
 
-previousWidthPercentage = 0;
-previousHeightPercentage = 0;
-previousLeftPercentage = 0;
-previousTopPercentage = 0;
+let previousWidthPercentage = 0;
+let previousHeightPercentage = 0;
+let previousLeftPercentage = 0;
+let previousTopPercentage = 0;
 
 // --- New Drag/Resize State ---
 let isDragging = false;
@@ -156,7 +156,8 @@ function toggleBlurFeature() {
     // Handle overlay visibility based on new toggle state
     if (isBlurEnabled) {
         // Re-enable blur if a video is active
-        if (activeVideo && !activeVideo.paused) {
+        console.log('BlurScript enabled, checking active video');
+        if (activeVideo) {
             createOrUpdateBlurOverlay();
         }
     } else {
@@ -451,7 +452,6 @@ function startResize(event) {
     startOffsetTop = blurOverlay.offsetTop;
     startOffsetWidth = blurOverlay.offsetWidth;
     startOffsetHeight = blurOverlay.offsetHeight;
-
     resizeHandle = event.target.dataset.handle; // Get handle type
 
     console.log('Resize started:', resizeHandle);
@@ -531,11 +531,6 @@ function doDragOrResize(event) {
             blurOverlay.style.top = `${newTop}px`;
         }
     }
-    const videoRect = activeVideo.getBoundingClientRect();
-    previousLeftPercentage = ((parseFloat(blurOverlay.style.left) - videoRect.left) / videoRect.width) * 100;
-    previousHeightPercentage = (parseFloat(blurOverlay.style.height) / videoRect.height) * 100;
-    previousTopPercentage = ((parseFloat(blurOverlay.style.top) - videoRect.top) / videoRect.height) * 100;
-    previousWidthPercentage = (parseFloat(blurOverlay.style.width) / videoRect.width) * 100;
 }
 
 function stopDragOrResize() {
@@ -546,12 +541,19 @@ function stopDragOrResize() {
     isDragging = false;
     isResizing = false;
     resizeHandle = null;
+    const videoRect = activeVideo.getBoundingClientRect();
+    previousLeftPercentage = ((parseFloat(blurOverlay.style.left)) / videoRect.width) * 100;
+    previousHeightPercentage = (parseFloat(blurOverlay.style.height) / videoRect.height) * 100;
+    previousTopPercentage = ((parseFloat(blurOverlay.style.top)) / videoRect.height) * 100;
+    previousWidthPercentage = (parseFloat(blurOverlay.style.width) / videoRect.width) * 100;
 }
 
 // --- Event Handlers ---
 
 function handleVideoPlay(event) {
     console.log('Video play detected:', event.target);
+    if (!isBlurEnabled)
+        return;
     const previouslyActive = activeVideo;
 
     // If a *different* video started playing, reset manual positioning
@@ -562,18 +564,18 @@ function handleVideoPlay(event) {
     activeVideo = event.target; // Set the playing video as active
 
     // Only create/update overlay if blur is enabled
-    if (isBlurEnabled) {
-        createOrUpdateBlurOverlay();
-    }
+    createOrUpdateBlurOverlay();
 }
 
 function handleVideoPauseOrEnd(event) {
+    if (!isBlurEnabled)
+        return;
     if (event.target !== activeVideo) {
         return;
     }
 
     // More robust check: If the video is *actually* paused or ended
-    if (activeVideo.paused || activeVideo.ended) {
+    if (activeVideo.ended) {
         console.log('Active video paused or ended, removing overlay.');
         removeBlurOverlay();
     }
@@ -581,6 +583,8 @@ function handleVideoPauseOrEnd(event) {
 
 function handleFullscreenChange() {
     console.log('Fullscreen change detected. Fullscreen element:', document.fullscreenElement);
+    if (!isBlurEnabled)
+        return;
     if (activeVideo) {
         createOrUpdateBlurOverlay();
         if (manualPositioning && blurOverlay) {
@@ -601,6 +605,8 @@ function handleFullscreenChange() {
 
 // Debounce function to limit rapid calls (like during resize/scroll)
 function debounce(func, wait) {
+    if (!isBlurEnabled)
+        return;
     let timeout;
     return function executedFunction(...args) {
         const later = () => {
@@ -614,6 +620,8 @@ function debounce(func, wait) {
 
 // Debounced function for automatic position updates
 const debouncedUpdateOverlayPosition = () => {
+    if (!isBlurEnabled)
+        return;
     if (blurOverlay && activeVideo && isBlurEnabled) {
         debounce(updateOverlayPosition, 50); // 50ms delay
     }
@@ -645,7 +653,6 @@ if (videos.length === 0) {
             // console.log('Adding listeners to video:', video);
             video.addEventListener('play', handleVideoPlay);
             // Add listeners for pause and ended to remove the blur
-            video.addEventListener('pause', handleVideoPauseOrEnd);
             video.addEventListener('ended', handleVideoPauseOrEnd);
             video.dataset.blurSetup = true; // Mark as set up
             
@@ -653,10 +660,11 @@ if (videos.length === 0) {
             // if (!video.paused) {
                 //     handleVideoPlay({ target: video });
                 // }
-            } else {
-                // console.log('Video already has blur setup:', video);
-            }
-        });
+            if (!activeVideo) {
+                activeVideo = video; // Set the first video as active if none is set
+            } 
+        }
+    });
         console.log(`Added listeners to ${videos.length} video(s).`);
     createToggleButton();
 }
